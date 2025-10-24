@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatat Keuangan v2.4 (Responsive)</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        :root {
+            --color-hijau: #2ecc71;
+            --color-merah: #e74c3c;
+            --color-biru: #3498db;
+            --color-latar: #f7f7f7;
+            --color-box: #ffffff;
+            --color-teks: #333;
+            --color-bayangan: rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-latar);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Ubah dari center ke flex-start */
+            min-height: 100vh;
+            color: var(--color-teks);
+        }
+
+        .container {
+            background-color: var(--color-box);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--color-bayangan);
+            padding: 20px 30px 30px 30px;
+            width: 90%;
+            max-width: 500px;
+            margin: 20px;
+            /* Perubahan: tambahkan transisi untuk ukuran */
+            transition: all 0.3s ease; 
+        }
+        
+        /* --- Gaya untuk Menu Tab --- */
+        .tabs {
+            display: flex;
+            margin: 0 -30px 20px -30px;
+            border-bottom: 1px solid #eee;
+        }
+        .tabs button {
+            flex: 1;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            background-color: transparent;
+            color: #999;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tabs button.active {
+            color: var(--color-biru);
+            border-bottom-color: var(--color-biru);
+        }
+        .hidden {
+            display: none;
+        }
+
+        h3 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin: 25px 0 15px 0;
+            font-size: 1.2rem;
+        }
+
+        /* --- Ringkasan Saldo --- */
+        .ringkasan-total { text-align: center; margin-bottom: 20px; }
+        .ringkasan-total h4 { font-size: 1rem; font-weight: 600; color: #555; }
+        .ringkasan-total h2 { font-size: 2.5rem; font-weight: 600; margin: 0; color: var(--color-biru); }
+
+        .ringkasan-akun, .ringkasan-laporan {
+            display: flex;
+            justify-content: space-between;
+            background-color: #fdfdfd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 15px; 
+            box-shadow: 0 3px 10px var(--color-bayangan);
+        }
+        .ringkasan-akun > div, .ringkasan-laporan > div {
+            flex: 1; text-align: center;
+        }
+        .ringkasan-akun > div:first-of-type,
+        .ringkasan-laporan > div:first-of-type {
+            border-right: 1px solid #dedede;
+        }
+        .ringkasan-akun h4, .ringkasan-laporan h4 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .ringkasan-akun .uang, .ringkasan-laporan .uang {
+            font-size: 1.5rem; font-weight: 600;
+        }
+        .plus { color: var(--color-hijau); }
+        .minus { color: var(--color-merah); }
+        
+        /* --- Filter Bulanan (Dashboard) --- */
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background-color: #fdfdfd;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px var(--color-bayangan);
+        }
+        .filter-container > div { flex: 1; display: flex; flex-direction: column; }
+        .filter-container label { font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: #555; }
+        .filter-container select, .filter-container input {
+            border: 1px solid #dedede;
+            border-radius: 5px;
+            font-size: 1rem;
+            padding: 8px;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: #fff;
+        }
+
+        /* --- Filter Riwayat (Halaman Riwayat) --- */
+        .riwayat-filter-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background-color: #fdfdfd;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px var(--color-bayangan);
+            margin-bottom: 20px;
+        }
+        .riwayat-filter-container .form-control {
+            display: flex;
+            flex-direction: column;
+        }
+         .riwayat-filter-container .form-control.full-width {
+            grid-column: 1 / -1;
+         }
+        .riwayat-filter-container label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .riwayat-filter-container select, .riwayat-filter-container input {
+            border: 1px solid #dedede;
+            border-radius: 5px;
+            font-size: 1rem;
+            padding: 8px;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: #fff;
+        }
+
+        /* Form Input */
+        .form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-control { display: flex; flex-direction: column; }
+        .form-control.full-width { grid-column: 1 / -1; }
+        .form-control label { margin-bottom: 5px; font-weight: 600; }
+        .form-control input, .form-control select {
+            border: 1px solid #dedede;
+            border-radius: 5px;
+            display: block;
+            font-size: 1rem;
+            padding: 12px;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: #fff;
+        }
+        .btn {
+            background-color: var(--color-biru);
+            border: 0;
+            border-radius: 5px;
+            color: white;
+            display: block;
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .btn:hover { background-color: #2980b9; }
+
+        /* Daftar Riwayat */
+        .list { list-style-type: none; padding: 0; margin-bottom: 25px; max-height: 400px; overflow-y: auto; }
+        .list li {
+            background-color: #fdfdfd;
+            box-shadow: 0 2px 5px var(--color-bayangan);
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 12px 15px;
+            margin: 10px 0;
+        }
+        .list li.plus { border-left: 7px solid var(--color-hijau); }
+        .list li.minus { border-left: 7px solid var(--color-merah); }
+        .list li .info { flex-grow: 1; }
+        .list li .info span { display: block; }
+        .list li .info .deskripsi { font-weight: 600; font-size: 1.1rem; }
+        .list li .info .detail { font-size: 0.8rem; color: #777; }
+        .list li .jumlah { font-weight: 600; font-size: 1.1rem; white-space: nowrap; margin-left: 10px; }
+        .list li.plus .jumlah { color: var(--color-hijau); }
+        .list li.minus .jumlah { color: var(--color-merah); }
+        .delete-btn {
+            background-color: var(--color-merah);
+            border: 0;
+            color: white;
+            font-size: 16px;
+            padding: 5px 8px;
+            position: absolute;
+            left: -30px; 
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .list li:hover .delete-btn { left: -10px; opacity: 1; }
+
+        
+        /* ======================================================= */
+        /* --- [PERUBAHAN] MEDIA QUERY UNTUK RESPONSIVE MOBILE --- */
+        /* ======================================================= */
+        
+        /* Ini hanya akan berlaku jika lebar layar 500px ke bawah */
+        @media (max-width: 500px) {
+            body {
+                /* Ubah latar belakang body agar sama dengan container */
+                background-color: var(--color-box); 
+                justify-content: flex-start;
+            }
+
+            .container {
+                width: 100%;
+                margin: 0;
+                padding: 20px; /* Atur ulang padding agar lebih rapi */
+                border-radius: 0; /* Hilangkan lengkungan di sudut */
+                box-shadow: none; /* Hilangkan bayangan */
+                min-height: 100vh; /* Penuhi tinggi layar */
+            }
+
+            .tabs {
+                /* Sesuaikan margin tab dengan padding container baru */
+                margin: 0 -20px 20px -20px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+    
+        <nav class="tabs">
+            <button id="tab-dashboard" class="active">🏠 Dashboard</button>
+            <button id="tab-riwayat">📜 Riwayat Transaksi</button>
+        </nav>
+
+        <div id="page-dashboard">
+            <h3>Saldo Total Saat Ini</h3>
+            <div class="ringkasan-total">
+                <h2 id="saldo-total">Rp 0</h2>
+            </div>
+            <div class="ringkasan-akun">
+                <div>
+                    <h4>Saldo ATM</h4>
+                    <p id="saldo-atm" class="uang">Rp 0</p>
+                </div>
+                <div>
+                    <h4>Saldo Tunai</h4>
+                    <p id="saldo-tunai" class="uang">Rp 0</p>
+                </div>
+            </div>
+            
+            <h3>Laporan Bulanan</h3>
+            <div class="filter-container">
+                <div>
+                    <label for="filter-bulan">Pilih Bulan</label>
+                    <select id="filter-bulan">
+                        </select>
+                </div>
+                <div>
+                    <label for="filter-tahun">Pilih Tahun</label>
+                    <select id="filter-tahun"></select>
+                </div>
+            </div>
+            <div class="ringkasan-laporan">
+                <div>
+                    <h4>Pemasukan (Bulan Ini)</h4>
+                    <p id="laporan-masuk" class="uang plus">+Rp 0</p>
+                </div>
+                <div>
+                    <h4>Pengeluaran (Bulan Ini)</h4>
+                    <p id="laporan-keluar" class="uang minus">-Rp 0</p>
+                </div>
+            </div>
+
+            <h3>Tambah Transaksi Baru</h3>
+            <form id="form-tambah">
+                <div class="form-control full-width">
+                    <label for="deskripsi">Deskripsi</label>
+                    <input type="text" id="deskripsi" placeholder="Mis: Bayar Listrik..." required>
+                </div>
+                <div class="form-control">
+                    <label for="jumlah">Jumlah</label>
+                    <input type="number" id="jumlah" placeholder="Mis: 50000" required>
+                </div>
+                <div class="form-control">
+                    <label for="tanggal">Tanggal</label>
+                    <input type="date" id="tanggal" required>
+                </div>
+                <div class="form-control">
+                    <label for="tipe">Tipe Transaksi</label>
+                    <select id="tipe">
+                        <option value="pengeluaran">Pengeluaran</option>
+                        <option value="pemasukan">Pemasukan</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label for="akun">Akun (Dompet)</label>
+                    <select id="akun">
+                        <option value="ATM">ATM</option>
+                        <option value="Tunai">Tunai</option>
+                    </select>
+                </div>
+                <div class="form-control full-width">
+                    <label for="kategori">Kategori</label>
+                    <select id="kategori">
+                        </select>
+                </div>
+                <button class="btn full-width">Tambah Transaksi</button>
+            </form>
+        </div>
+        <div id="page-riwayat" class="hidden">
+            <h3>Filter Riwayat Transaksi</h3>
+            
+            <div class="riwayat-filter-container">
+                <div class="form-control">
+                    <label for="filter-tgl-mulai">Tanggal Mulai</label>
+                    <input type="date" id="filter-tgl-mulai">
+                </div>
+                <div class="form-control">
+                    <label for="filter-tgl-akhir">Tanggal Akhir</label>
+                    <input type="date" id="filter-tgl-akhir">
+                </div>
+                <div class="form-control">
+                    <label for="filter-kategori">Kategori</label>
+                    <select id="filter-kategori"></select>
+                </div>
+                <div class="form-control">
+                    <label for="filter-akun">Akun</label>
+                    <select id="filter-akun"></select>
+                </div>
+                <div class="form-control full-width">
+                    <label for="filter-tipe">Tipe Transaksi</label>
+                    <select id="filter-tipe"></select>
+                </div>
+                <button id="btn-apply-filter" class="btn full-width">Terapkan Filter</button>
+            </div>
+            
+            <div class="ringkasan-laporan">
+                <div>
+                    <h4>Total Masuk (Filter)</h4>
+                    <p id="riwayat-total-masuk" class="uang plus">+Rp 0</p>
+                </div>
+                <div>
+                    <h4>Total Keluar (Filter)</h4>
+                    <p id="riwayat-total-keluar" class="uang minus">-Rp 0</p>
+                </div>
+            </div>
+
+            <ul id="riwayat-list" class="list">
+                </ul>
+        </div>
+        </div>
+
+    <script>
+        // === ELEMEN DOM ===
+        const saldoTotalEl = document.getElementById('saldo-total');
+        const saldoAtmEl = document.getElementById('saldo-atm');
+        const saldoTunaiEl = document.getElementById('saldo-tunai');
+        const formTambah = document.getElementById('form-tambah');
+        const deskripsiInput = document.getElementById('deskripsi');
+        const jumlahInput = document.getElementById('jumlah');
+        const tanggalInput = document.getElementById('tanggal');
+        const tipeInput = document.getElementById('tipe');
+        const akunInput = document.getElementById('akun');
+        const kategoriInput = document.getElementById('kategori');
+        
+        // Elemen Laporan Dashboard
+        const filterBulanEl = document.getElementById('filter-bulan');
+        const filterTahunEl = document.getElementById('filter-tahun');
+        const laporanMasukEl = document.getElementById('laporan-masuk');
+        const laporanKeluarEl = document.getElementById('laporan-keluar');
+
+        // Elemen Tab
+        const tabDashboard = document.getElementById('tab-dashboard');
+        const tabRiwayat = document.getElementById('tab-riwayat');
+        const pageDashboard = document.getElementById('page-dashboard');
+        const pageRiwayat = document.getElementById('page-riwayat');
+
+        // Elemen Halaman Riwayat
+        const riwayatListEl = document.getElementById('riwayat-list');
+        const btnApplyFilter = document.getElementById('btn-apply-filter');
+        const filterTglMulai = document.getElementById('filter-tgl-mulai');
+        const filterTglAkhir = document.getElementById('filter-tgl-akhir');
+        const filterKategori = document.getElementById('filter-kategori');
+        const filterAkun = document.getElementById('filter-akun');
+        const filterTipe = document.getElementById('filter-tipe');
+        const riwayatTotalMasuk = document.getElementById('riwayat-total-masuk');
+        const riwayatTotalKeluar = document.getElementById('riwayat-total-keluar');
+
+        // === DATA ===
+        const localStorageTransactions = JSON.parse(localStorage.getItem('transactions-v2.4'));
+        let transactions = localStorage.getItem('transactions-v2.4') !== null ? localStorageTransactions : [];
+
+        // Definisikan kategori, bulan
+        const kategoriOptions = [
+            "Makan & Jajan", "Bensin", "Paket Internet", "Iuran Kontrakan", 
+            "Belanja", "Hiburan", "Darurat", "Gaji / Pemasukan", 
+            "Uang Saku", "Lainnya"
+        ];
+        const bulanOptions = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        // === FUNGSI ===
+
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency', currency: 'IDR', minimumFractionDigits: 0
+            }).format(angka);
+        }
+
+        function formatTanggal(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString + 'T00:00:00-07:00').toLocaleDateString('id-ID', options);
+        }
+
+        function generateID() {
+            return Math.floor(Math.random() * 1000000000);
+        }
+
+        // --- Fungsi Logika Inti ---
+
+        function addTransaction(e) {
+            e.preventDefault(); 
+            if (deskripsiInput.value.trim() === '' || jumlahInput.value.trim() === '' || tanggalInput.value.trim() === '') {
+                alert('Mohon isi deskripsi, jumlah, dan tanggal.');
+                return;
+            }
+            let jumlah = +jumlahInput.value;
+            if (tipeInput.value === 'pengeluaran') {
+                jumlah = -Math.abs(jumlah);
+            } else {
+                jumlah = Math.abs(jumlah);
+            }
+            const transaction = {
+                id: generateID(),
+                tanggal: tanggalInput.value, 
+                deskripsi: deskripsiInput.value,
+                jumlah: jumlah,
+                akun: akunInput.value,
+                kategori: kategoriInput.value
+            };
+            transactions.push(transaction);
+            updateLocalStorage();
+            
+            // Update filter dashboard agar sesuai dengan data baru
+            const tDate = new Date(transaction.tanggal + 'T00:00:00-07:00');
+            filterBulanEl.value = tDate.getMonth();
+            populateTahunFilter(); // Perbarui jika ada tahun baru
+            filterTahunEl.value = tDate.getFullYear();
+
+            updateSaldos(); // Update saldo total
+            updateLaporanBulanan(); // Update laporan di dashboard
+            
+            formTambah.reset();
+            tanggalInput.value = new Date().toISOString().split('T')[0];
+            
+            // Beri notifikasi
+            alert('Transaksi berhasil ditambahkan!');
+        }
+
+        function updateSaldos() {
+            const amounts = transactions.map(t => t.jumlah);
+            const total = amounts.reduce((acc, item) => (acc += item), 0);
+
+            const saldoATM = transactions
+                .filter(t => t.akun === 'ATM')
+                .reduce((acc, t) => (acc += t.jumlah), 0);
+            
+            const saldoTunai = transactions
+                .filter(t => t.akun === 'Tunai')
+                .reduce((acc, t) => (acc += t.jumlah), 0);
+
+            saldoTotalEl.innerText = formatRupiah(total);
+            saldoAtmEl.innerText = formatRupiah(saldoATM);
+            saldoTunaiEl.innerText = formatRupiah(saldoTunai);
+        }
+        
+        function updateLaporanBulanan() {
+            const bulan = parseInt(filterBulanEl.value);
+            const tahun = parseInt(filterTahunEl.value);
+            
+            if (isNaN(bulan) || isNaN(tahun)) return;
+
+            const filteredTransactions = transactions.filter(t => {
+                const tDate = new Date(t.tanggal + 'T00:00:00-07:00'); 
+                return tDate.getMonth() === bulan && tDate.getFullYear() === tahun;
+            });
+            
+            const amounts = filteredTransactions.map(t => t.jumlah);
+            const pemasukan = amounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0);
+            const pengeluaran = amounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1;
+            
+            laporanMasukEl.innerText = `+${formatRupiah(pemasukan)}`;
+            laporanKeluarEl.innerText = `-${formatRupiah(pengeluaran)}`;
+        }
+        
+        window.removeTransaction = function(id) {
+            if (confirm('Anda yakin ingin menghapus transaksi ini?')) {
+                transactions = transactions.filter(transaction => transaction.id !== id);
+                updateLocalStorage();
+                updateSaldos(); 
+                updateLaporanBulanan();
+                applyRiwayatFilter(); // Update juga list di halaman riwayat
+            }
+        }
+
+        function updateLocalStorage() {
+            localStorage.setItem('transactions-v2.4', JSON.stringify(transactions));
+        }
+
+        // --- Fungsi Halaman Riwayat ---
+
+        function applyRiwayatFilter() {
+            let filteredTransactions = [...transactions];
+            
+            const tglMulai = filterTglMulai.value;
+            const tglAkhir = filterTglAkhir.value;
+            const kategori = filterKategori.value;
+            const akun = filterAkun.value;
+            const tipe = filterTipe.value;
+
+            // 1. Filter Tanggal
+            if (tglMulai) {
+                filteredTransactions = filteredTransactions.filter(t => t.tanggal >= tglMulai);
+            }
+            if (tglAkhir) {
+                filteredTransactions = filteredTransactions.filter(t => t.tanggal <= tglAkhir);
+            }
+            // 2. Filter Kategori
+            if (kategori !== 'semua') {
+                filteredTransactions = filteredTransactions.filter(t => t.kategori === kategori);
+            }
+            // 3. Filter Akun
+            if (akun !== 'semua') {
+                filteredTransactions = filteredTransactions.filter(t => t.akun === akun);
+            }
+            // 4. Filter Tipe
+            if (tipe === 'pemasukan') {
+                filteredTransactions = filteredTransactions.filter(t => t.jumlah > 0);
+            } else if (tipe === 'pengeluaran') {
+                filteredTransactions = filteredTransactions.filter(t => t.jumlah < 0);
+            }
+            
+            // 5. Update List Riwayat
+            riwayatListEl.innerHTML = '';
+            const sortedTransactions = filteredTransactions.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            sortedTransactions.forEach(t => {
+                const item = createTransactionItem(t);
+                riwayatListEl.appendChild(item);
+            });
+
+            // 6. Update Total Riwayat
+            const amounts = filteredTransactions.map(t => t.jumlah);
+            const pemasukan = amounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0);
+            const pengeluaran = amounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1;
+            
+            riwayatTotalMasuk.innerText = `+${formatRupiah(pemasukan)}`;
+            riwayatTotalKeluar.innerText = `-${formatRupiah(pengeluaran)}`;
+        }
+
+        function createTransactionItem(transaction) {
+            const jumlah = transaction.jumlah;
+            const tanda = jumlah < 0 ? '' : '+';
+            const itemClass = jumlah < 0 ? 'minus' : 'plus';
+            const item = document.createElement('li');
+            item.classList.add(itemClass);
+            item.innerHTML = `
+                <button class="delete-btn" onclick="removeTransaction(${transaction.id})">x</button>
+                <div class="info">
+                    <span class="deskripsi">${transaction.deskripsi}</span>
+                    <span class="detail">${formatTanggal(transaction.tanggal)} | ${transaction.kategori} | ${transaction.akun}</span>
+                </div>
+                <span class="jumlah">${tanda}${formatRupiah(jumlah)}</span>
+            `;
+            return item;
+        }
+
+        // --- Fungsi Inisialisasi & Tab ---
+        
+        function populateTahunFilter() {
+            const currentYear = new Date().getFullYear();
+            const years = transactions.map(t => new Date(t.tanggal + 'T00:00:00-07:00').getFullYear());
+            const uniqueYears = [...new Set(years)]; 
+            if (!uniqueYears.includes(currentYear)) {
+                uniqueYears.push(currentYear); 
+            }
+            uniqueYears.sort((a, b) => b - a); 
+            
+            const currentSelection = filterTahunEl.value; // Simpan pilihan saat ini
+            filterTahunEl.innerHTML = ''; 
+            uniqueYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.text = year;
+                filterTahunEl.appendChild(option);
+            });
+            // Kembalikan pilihan jika masih ada, atau set ke tahun ini
+            filterTahunEl.value = uniqueYears.includes(parseInt(currentSelection)) ? currentSelection : currentYear;
+        }
+
+        function populateAllFilters() {
+            const today = new Date();
+            const currentMonth = today.getMonth(); 
+            const currentYear = today.getFullYear();
+            
+            // Isi Opsi Kategori (Form & Filter)
+            kategoriInput.innerHTML = '';
+            filterKategori.innerHTML = '<option value="semua">Semua Kategori</option>';
+            kategoriOptions.forEach(k => {
+                kategoriInput.innerHTML += `<option value="${k}">${k}</option>`;
+                filterKategori.innerHTML += `<option value="${k}">${k}</option>`;
+            });
+
+            // Isi Opsi Bulan (Dashboard Filter)
+            filterBulanEl.innerHTML = '';
+            bulanOptions.forEach((bulan, index) => {
+                filterBulanEl.innerHTML += `<option value="${index}">${bulan}</option>`;
+            });
+            filterBulanEl.value = currentMonth;
+            
+            // Isi Opsi Tahun (Dashboard Filter)
+            populateTahunFilter();
+            
+            // Isi Filter Riwayat Lainnya
+            filterAkun.innerHTML = '<option value="semua">Semua Akun</option><option value="ATM">ATM</option><option value="Tunai">Tunai</option>';
+            filterTipe.innerHTML = '<option value="semua">Semua Tipe</option><option value="pemasukan">Pemasukan</option><option value="pengeluaran">Pengeluaran</option>';
+        
+            // Set tanggal default untuk filter riwayat (awal bulan ini s/d hari ini)
+            filterTglMulai.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            filterTglAkhir.value = today.toISOString().split('T')[0];
+        }
+
+        function showDashboard() {
+            pageDashboard.classList.remove('hidden');
+            pageRiwayat.classList.add('hidden');
+            tabDashboard.classList.add('active');
+            tabRiwayat.classList.remove('active');
+            // Update laporan bulanan saat kembali ke dashboard
+            updateLaporanBulanan();
+        }
+        function showRiwayat() {
+            pageDashboard.classList.add('hidden');
+            pageRiwayat.classList.remove('hidden');
+            tabDashboard.classList.remove('active');
+            tabRiwayat.classList.add('active');
+            // Langsung jalankan filter saat tab dibuka
+            applyRiwayatFilter();
+        }
+
+        // Fungsi: Inisialisasi Aplikasi
+        function init() {
+            populateAllFilters(); 
+            updateSaldos(); 
+            updateLaporanBulanan(); 
+            
+            tanggalInput.value = new Date().toISOString().split('T')[0];
+            showDashboard(); // Mulai di halaman dashboard
+        }
+
+        // === EVENT LISTENER ===
+        formTambah.addEventListener('submit', addTransaction);
+        filterBulanEl.addEventListener('change', updateLaporanBulanan);
+        filterTahunEl.addEventListener('change', updateLaporanBulanan);
+        
+        tabDashboard.addEventListener('click', showDashboard);
+        tabRiwayat.addEventListener('click', showRiwayat);
+        
+        btnApplyFilter.addEventListener('click', applyRiwayatFilter);
+
+        // === JALANKAN APLIKASI ===
+        init();
+
+    </script>
+</body>
+</html>
