@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatat Keuangan V3.0 (Multi-User Edition)</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    
+    <style>
+        /* ======================================================= */
+        /* ╬£ CSS TEMA MEWAH (DENGAN LOGIN GOOGLE) ╬£ */
+        /* ======================================================= */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        
+        :root {
+            --color-hijau: #00b894;
+            --color-merah: #e74c3c;
+            --color-gold: #D4AF37;
+            --color-gold-terang: #F7D060;
+            --color-gold-gradien: linear-gradient(135deg, var(--color-gold-terang), var(--color-gold));
+            --color-latar: #121212;
+            --color-box: #1E1E1E;
+            --color-box-border: rgba(212, 175, 55, 0.2);
+            --color-teks: #E0E0E0;
+            --color-teks-abu: #888;
+            --color-bayangan: rgba(0, 0, 0, 0.3);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-latar);
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            color: var(--color-teks);
+        }
+        
+        /* ⚠️ BARU: Layar Login */
+        #welcome-screen {
+            background: var(--color-box);
+            border: 1px solid var(--color-box-border);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px var(--color-bayangan);
+            padding: 40px 30px;
+            width: 90%;
+            max-width: 400px;
+            margin-top: 10vh;
+            text-align: center;
+        }
+        #welcome-screen h1 {
+            background: var(--color-gold-gradien);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        #welcome-screen p {
+            color: var(--color-teks-abu);
+            margin-bottom: 30px;
+        }
+        #btn-google-login {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            color: #333;
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #btn-google-login:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        #btn-google-login img {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* ⚠️ BARU: Tombol Logout */
+        #logout-container {
+            width: 90%;
+            max-width: 800px;
+            display: flex;
+            justify-content: flex-end;
+            padding: 0;
+            margin-top: 20px;
+            margin-bottom: -10px;
+        }
+        #btn-logout {
+            background: none;
+            border: 1px solid var(--color-teks-abu);
+            color: var(--color-teks-abu);
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #btn-logout:hover {
+            background: var(--color-teks-abu);
+            color: #121212;
+            border-color: var(--color-teks-abu);
+        }
+        
+        /* Kontainer aplikasi (hidden by default) */
+        .container {
+            background: var(--color-box);
+            border: 1px solid var(--color-box-border);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px var(--color-bayangan);
+            padding: 20px 30px 30px 30px;
+            width: 90%;
+            max-width: 800px; 
+            margin: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .tabs {
+            display: flex;
+            margin: 0 -30px 20px -30px;
+            border-bottom: 1px solid #333;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tabs button {
+            flex: 1 0 auto;
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            background-color: transparent;
+            color: var(--color-teks-abu);
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            top: 1px;
+            white-space: nowrap;
+        }
+        .tabs button.active {
+            color: var(--color-gold);
+            border-bottom-color: var(--color-gold);
+        }
+        .tabs button:hover:not(.active) {
+            color: var(--color-teks);
+            background-color: #252525;
+        }
+        
+        .hidden { display: none; }
+        
+        h3 {
+            border-bottom: 2px solid var(--color-gold);
+            padding-bottom: 10px;
+            margin: 25px 0 15px 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-gold-terang);
+        }
+        
+        .ring-total h4 {
+            color: var(--color-teks-abu);
+            font-weight: 600;
+        }
+        
+        .ringkasan-total h2 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin: 0;
+            background: var(--color-gold-gradien);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .ringkasan-akun, .ringkasan-laporan, .filter-container, .riwayat-filter-container {
+            background: var(--color-latar);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px var(--color-bayangan);
+            border: 1px solid var(--color-box-border);
+        }
+        .ringkasan-akun > div, .ringkasan-laporan > div {
+            flex: 1; text-align: center;
+        }
+        .ringkasan-akun > div:first-of-type, .ringkasan-laporan > div:first-of-type {
+            border-right: 1px solid #333;
+        }
+        
+        .ringkasan-akun h4, .ringkasan-laporan h4 {
+            font-size: 0.9rem; text-transform: uppercase; font-weight: 600; margin-bottom: 5px;
+            color: var(--color-teks-abu);
+        }
+        .ringkasan-akun .uang, .ringkasan-laporan .uang {
+            font-size: 1.5rem; font-weight: 600;
+        }
+        .plus { color: var(--color-hijau); }
+        .minus { color: var(--color-merah); }
+        
+        .filter-container > div { flex: 1; display: flex; flex-direction: column; }
+        .filter-container label, .riwayat-filter-container label, .form-control label {
+            font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: var(--color-teks-abu);
+        }
+
+        .form, .form-up { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-control { display: flex; flex-direction: column; }
+        .form-control.full-width { grid-column: 1 / -1; }
+        
+        .form-control input, .form-control select, .filter-container select, .filter-container input, .riwayat-filter-container select, .riwayat-filter-container input {
+            border: 1px solid #444;
+            border-radius: 8px;
+            display: block;
+            font-size: 1rem;
+            padding: 12px;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: #252525;
+            color: var(--color-teks);
+            transition: all 0.3s ease;
+        }
+        .form-control input:focus, .form-control select:focus, .filter-container select:focus, .filter-container input:focus, .riwayat-filter-container select:focus, .riwayat-filter-container input:focus {
+            outline: none;
+            border-color: var(--color-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
+        }
+        
+        .btn {
+            background: var(--color-gold-gradien);
+            border: 0;
+            border-radius: 8px;
+            color: #121212;
+            display: block;
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+            filter: brightness(1.1);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--color-gold);
+            color: var(--color-gold);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: var(--color-gold);
+            color: #121212;
+        }
+        
+        .list { list-style-type: none; padding: 0; margin-bottom: 25px; max-height: 400px; overflow-y: auto; }
+        
+        .list li {
+            background: #252525;
+            box-shadow: 0 3px 8px var(--color-bayangan);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 15px 20px;
+            margin: 12px 0;
+            border: 1px solid #333;
+            border-left: 7px solid transparent;
+        }
+        .list li.plus { border-left-color: var(--color-hijau); }
+        .list li.minus { border-left-color: var(--color-merah); }
+        
+        .list li .info .deskripsi { font-weight: 600; font-size: 1.1rem; color: var(--color-teks); }
+        .list li .info .detail { font-size: 0.8rem; color: var(--color-teks-abu); }
+        .list li .jumlah { font-weight: 600; font-size: 1.1rem; white-space: nowrap; margin-left: 10px; }
+        .list li.plus .jumlah { color: var(--color-hijau); }
+        .list li.minus .jumlah { color: var(--color-merah); }
+        
+        .delete-btn { background-color: var(--color-merah); border: 0; color: white; font-size: 16px; padding: 5px 8px; position: absolute; left: -30px; top: 50%; transform: translateY(-50%); opacity: 0; transition: all 0.3s ease; cursor: pointer; border-radius: 3px; }
+        .list li:hover { background-color: #2a2a2a; border-color: #555; }
+        .list li:hover .delete-btn { left: -10px; opacity: 1; }
+        
+        .list-up {
+            list-style-type: none; padding: 0; margin-bottom: 25px;
+        }
+        .list-up li {
+            background: #252525;
+            box-shadow: 0 3px 8px var(--color-bayangan);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 12px 0;
+            border: 1px solid #333;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px 20px;
+            align-items: center;
+        }
+        .list-up li.utang { border-left: 7px solid var(--color-merah); }
+        .list-up li.piutang { border-left: 7px solid var(--color-hijau); }
+        .list-up li .nama { font-size: 1.2rem; font-weight: 600; grid-column: 1 / 2; }
+        .list-up li .tanggal { font-size: 0.8rem; color: var(--color-teks-abu); grid-column: 1 / 2; }
+        .list-up li .sisa { font-size: 1.1rem; font-weight: 600; grid-column: 1 / 2; }
+        .list-up li .sisa span { font-size: 0.8rem; font-weight: 400; color: var(--color-teks-abu); }
+        .list-up li .sisa .jumlah-awal { text-decoration: line-through; color: #666; font-size: 0.9rem; margin-left: 5px; }
+        .list-up li .aksi { grid-column: 2 / 3; grid-row: 1 / span 3; }
+        .ringkasan-up {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background: var(--color-latar);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px var(--color-bayangan);
+            border: 1px solid var(--color-box-border);
+        }
+        .ringkasan-up > div { text-align: center; }
+        .ringkasan-up h4 {
+            font-size: 0.9rem; text-transform: uppercase; font-weight: 600; margin-bottom: 5px;
+            color: var(--color-teks-abu);
+        }
+        .ringkasan-up .uang { font-size: 1.5rem; font-weight: 600; }
+        
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: rgba(0, 0, 0, 0.7); 
+            display: none;
+            justify-content: center; align-items: center; 
+            z-index: 200; backdrop-filter: blur(5px); 
+        }
+        .modal-content { 
+            background-color: var(--color-box); padding: 30px; border-radius: 10px; 
+            width: 90%; max-width: 400px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); 
+            max-height: 80vh; overflow-y: auto; 
+            border: 1px solid var(--color-box-border); 
+        }
+        .modal-content h3 { margin-top: 0; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .modal-footer button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-modal-save { background: var(--color-gold-gradien); color: #121212; font-weight: 700; }
+        .btn-modal-close { background-color: #444; color: var(--color-teks); }
+        
+        #budgeting-container {
+            width: 100%;
+            overflow-x: auto;
+            background-color: #252525;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px var(--color-bayangan);
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 15px;
+        }
+
+        #budgeting-table { 
+            width: 100%; 
+            min-width: 500px;
+            border-collapse: collapse; 
+            margin-bottom: 0;
+            font-size: 0.9rem; 
+        }
+        #budgeting-table th, #budgeting-table td { 
+            padding: 12px 10px; 
+            text-align: right; 
+            border-bottom: 1px solid #333; 
+            white-space: nowrap;
+        }
+        #budgeting-table th:first-child, #budgeting-table td:first-child { text-align: left; font-weight: 600; }
+        #budgeting-table thead th { background-color: #333; color: var(--color-gold-terang); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+        #budgeting-table tbody tr:hover { background-color: #2a2a2a; }
+        #budgeting-table tfoot td { font-weight: 700; color: var(--color-teks); }
+        .budget-lebih { color: var(--color-merah); font-weight: 600; }
+        .budget-sisa { color: var(--color-hijau); font-weight: 600; }
+        #form-budget-setting-page { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
+
+        @media (max-width: 500px) {
+            body { background-color: var(--color-latar); }
+            #logout-container { margin-top: 10px; margin-right: 20px; }
+            .container {
+                width: 100%; margin: 0; padding: 20px;
+                border-radius: 0; box-shadow: none;
+                min-height: 100vh; background-color: var(--color-box);
+                max-width: 100%;
+            }
+            .tabs { margin: 0 -20px 20px -20px; }
+            .form, .form-up { grid-template-columns: 1fr; }
+            .form-control.full-width { grid-column: 1 / -1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-screen">
+        <h1>Pencatat Keuangan</h1>
+        <p>Login dengan Google untuk memulai sesi pribadi Anda.</p>
+        <button id="btn-google-login">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+            Login dengan Google
+        </button>
+    </div>
+
+    <div id="logout-container" class="hidden">
+        <button id="btn-logout">Logout</button>
+    </div>
+
+    <div class="container hidden"> 
+    
+        <nav class="tabs">
+            <button id="tab-dashboard" class="active">🏠 Dashboard</button>
+            <button id="tab-budgeting">💸Budgeting</button>
+            <button id="tab-riwayat">💰Riwayat</button>
+            <button id="tab-utangpiutang">💵 Utang/Piutang</button>
+        </nav>
+
+        <div id="page-dashboard">
+            <h3>Saldo Total Saat Ini</h3>
+            <div class="ringkasan-total"><h2 id="saldo-total">Rp 0</h2></div>
+            <div class="ringkasan-akun">
+                <div><h4>Saldo ATM</h4><p id="saldo-atm" class="uang">Rp 0</p></div>
+                <div><h4>Saldo Tunai</h4><p id="saldo-tunai" class="uang">Rp 0</p></div>
+            </div>
+            
+            <h3>Laporan Bulanan</h3>
+            <div class="filter-container">
+                <div><label for="filter-bulan-dash">Pilih Bulan</label><select id="filter-bulan-dash"></select></div>
+                <div><label for="filter-tahun-dash">Pilih Tahun</label><select id="filter-tahun-dash"></select></div>
+            </div>
+            <div class="ringkasan-laporan">
+                <div><h4>Pemasukan (Bulan Ini)</h4><p id="laporan-masuk" class="uang plus">+Rp 0</p></div>
+                <div><h4>Pengeluaran (Bulan Ini)</h4><p id="laporan-keluar" class="uang minus">-Rp 0</p></div>
+            </div>
+
+            <h3>Tambah Transaksi Baru</h3>
+            <form id="form-tambah">
+                <div class="form-control full-width"><label for="deskripsi">Deskripsi</label><input type="text" id="deskripsi" placeholder="Mis: Bayar Listrik..." required></div>
+                <div class="form-control"><label for="jumlah">Jumlah</label><input type="number" id="jumlah" placeholder="Mis: 50000" required></div>
+                <div class="form-control"><label for="tanggal">Tanggal</label><input type="date" id="tanggal" required></div>
+                <div class="form-control"><label for="tipe">Tipe Transaksi</label><select id="tipe"><option value="pengeluaran">Pengeluaran</option><option value="pemasukan">Pemasukan</option></select></div>
+                <div class="form-control"><label for="akun">Akun (Dompet)</label><select id="akun"><option value="ATM">ATM</option><option value="Tunai">Tunai</option></select></div>
+                <div class="form-control full-width"><label for="kategori">Kategori</label><select id="kategori"></select></div>
+                <button class="btn full-width">Tambah Transaksi</button>
+            </form>
+        </div>
+        
+        <div id="page-budgeting" class="hidden">
+            <h3>Pengaturan Target Budget</h3>
+            <small style="display: block; margin-bottom: 15px;">Target dapat diubah untuk setiap bulan.</small>
+            
+            <div class="filter-container" id="filter-setting-container">
+                <div><label for="filter-bulan-set">Pilih Bulan</label><select id="filter-bulan-set"></select></div>
+                <div><label for="filter-tahun-set">Pilih Tahun</label><select id="filter-tahun-set"></select></div>
+            </div>
+            
+            <form id="form-budget-setting-page"></form>
+            <button id="btn-save-budget-page" class="btn full-width">Simpan Budget Target</button>
+            
+            <hr style="border: none; border-top: 1px solid #333; margin: 30px 0;">
+
+            <h3>Monitoring Bulanan</h3>
+            <div class="filter-container">
+                <div><label for="filter-bulan-budg">Pilih Bulan</label><select id="filter-bulan-budg"></select></div>
+                <div><label for="filter-tahun-budg">Pilih Tahun</label><select id="filter-tahun-budg"></select></div>
+            </div>
+            
+            <div id="budgeting-container">
+                <table id="budgeting-table">
+                    <thead>
+                        <tr>
+                            <th>Kategori</th>
+                            <th>Target</th>
+                            <th>Terpakai</th>
+                            <th>Sisa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budgeting-tbody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td style="font-weight: 600;">TOTAL</td>
+                            <td id="budget-total-forecast" style="font-weight: 600;">Rp 0</td>
+                            <td id="budget-total-terpakai" style="font-weight: 600;">Rp 0</td>
+                            <td id="budget-total-sisa" style="font-weight: 600;">Rp 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-riwayat" class="hidden">
+            <h3>Filter Riwayat Transaksi</h3>
+            <div class="riwayat-filter-container">
+                <div class="form-control"><label for="filter-tgl-mulai">Tanggal Mulai</label><input type="date" id="filter-tgl-mulai"></div>
+                <div class="form-control"><label for="filter-tgl-akhir">Tanggal Akhir</label><input type="date" id="filter-tgl-akhir"></div>
+                <div class="form-control"><label for="filter-kategori">Kategori</label><select id="filter-kategori"></select></div>
+                <div class="form-control"><label for="filter-akun">Akun</label><select id="filter-akun"></select></div>
+                <div class="form-control full-width"><label for="filter-tipe">Tipe Transaksi</label><select id="filter-tipe"></select></div>
+                <button id="btn-apply-filter" class="btn full-width">Terapkan Filter</button>
+            </div>
+            
+            <div class="ringkasan-laporan">
+                <div><h4>Total Masuk (Filter)</h4><p id="riwayat-total-masuk" class="uang plus">+Rp 0</p></div>
+                <div><h4>Total Keluar (Filter)</h4><p id="riwayat-total-keluar" class="uang minus">-Rp 0</p></div>
+            </div>
+            <ul id="riwayat-list" class="list"></ul>
+        </div>
+
+        <div id="page-utangpiutang" class="hidden">
+            <h3>Ringkasan Utang/Piutang</h3>
+            <div class="ringkasan-up">
+                <div>
+                    <h4>Total Utang Saya</h4>
+                    <p id="total-utang-saya" class="uang minus">Rp 0</p>
+                </div>
+                <div>
+                    <h4>Total Piutang Saya</h4>
+                    <p id="total-piutang-saya" class="uang plus">Rp 0</p>
+                </div>
+            </div>
+
+            <h3>Catat Utang/Piutang Baru</h3>
+            <form id="form-tambah-up" class="form-up">
+                <div class="form-control full-width"><label for="nama-up">Nama Orang</label><input type="text" id="nama-up" placeholder="Nama..." required></div>
+                <div class="form-control"><label for="jumlah-up">Jumlah</label><input type="number" id="jumlah-up" placeholder="500000" required></div>
+                <div class="form-control"><label for="tanggal-up">Tanggal</label><input type="date" id="tanggal-up" required></div>
+                <div class="form-control"><label for="tipe-up">Tipe</label><select id="tipe-up"><option value="utang">Saya Menerima Utang</option><option value="piutang">Saya Memberi Piutang</option></select></div>
+                <div class="form-control"><label for="akun-up">Masuk/Keluar dari Akun</label><select id="akun-up"><option value="ATM">ATM</option><option value="Tunai">Tunai</option></select></div>
+                <button class="btn full-width">Catat</button>
+            </form>
+
+            <hr style="border: none; border-top: 1px solid #333; margin: 30px 0;">
+
+            <h3>Daftar Utang Saya (Wajib Dibayar)</h3>
+            <ul id="list-utang" class="list-up"></ul>
+
+            <h3>Daftar Piutang Saya (Orang Lain Utang)</h3>
+            <ul id="list-piutang" class="list-up"></ul>
+
+        </div>
+
+    </div> 
+    
+    <div id="modal-bayar-up" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-up-title">Bayar Utang</h3>
+            <form id="form-bayar-up">
+                <input type="hidden" id="hidden-up-id">
+                <input type="hidden" id="hidden-up-tipe">
+                <input type="hidden" id="hidden-up-nama">
+                
+                <div class="form-control full-width">
+                    <label for="jumlah-bayar-up">Jumlah Pembayaran</label>
+                    <input type="number" id="jumlah-bayar-up" placeholder="50000" required>
+                </div>
+                <div class="form-control full-width">
+                    <label for="akun-bayar-up" id="modal-up-akun-label">Bayar dari Akun</label>
+                    <select id="akun-bayar-up">
+                        <option value="ATM">ATM</option>
+                        <option value="Tunai">Tunai</option>
+                    </select>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" id="btn-modal-up-close" class="btn-modal-close">Batal</button>
+                    <button type="submit" class="btn-modal-save">Simpan Pembayaran</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // =======================================================
+        // 1. KONFIGURASI FIREBASE (Milik Anda)
+        // =======================================================
+       const firebaseConfig = {
+  apiKey: "AIzaSyDl49nl-bJkvjfVoZqfYGwZ0lLkTEkC_94",
+  authDomain: "catatan-keuangan-ba599.firebaseapp.com",
+  projectId: "catatan-keuangan-ba599",
+  storageBucket: "catatan-keuangan-ba599.firebasestorage.app",
+  messagingSenderId: "748657556647",
+  appId: "1:748657556647:web:44cbbdd5b61a3521592f82"
+};
+        // =======================================================
+
+        // ⚠️ LOGIKA JAVASCRIPT DIRUBAH TOTAL UNTUK MULTI-USER ⚠️
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth(); // <-- BARU: Inisialisasi Auth
+        
+        // --- DATA DATA GLOBAL (VERSI MULTI-USER) ---
+        let userId = null; // <-- BARU: ID pengguna yang login
+        
+        // Koleksi akan diatur SETELAH login
+        let transactionsCollection = null;
+        let budgetsCollection = null;
+        let utangPiutangCollection = null;
+        
+        let transactions = [];
+        let budgets = {}; 
+        let utangPiutang = [];
+        
+        // Unsubscriber untuk listener
+        let unsubscribeDB = null;
+        let currentBudgetSnapshotUnsubscribe = null;
+        let unsubscribeUP = null; 
+
+        const kategoriOptions = ["Makan & Jajan", "Bensin", "Paket Internet", "Iuran Kontrakan", "Belanja", "Hiburan", "Darurat", "Gaji / Pemasukan", "Uang Saku", "Lainnya", "Utang", "Piutang", "Bayar Utang", "Bayar Piutang"];
+        const bulanOptions = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+        // === ELEMEN DOM ===
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const btnGoogleLogin = document.getElementById('btn-google-login');
+        const logoutContainer = document.getElementById('logout-container');
+        const btnLogout = document.getElementById('btn-logout');
+        const appContainer = document.querySelector('.container');
+
+        const saldoTotalEl = document.getElementById('saldo-total');
+        const saldoAtmEl = document.getElementById('saldo-atm');
+        const saldoTunaiEl = document.getElementById('saldo-tunai');
+        const formTambah = document.getElementById('form-tambah');
+        const deskripsiInput = document.getElementById('deskripsi');
+        const jumlahInput = document.getElementById('jumlah');
+        const tanggalInput = document.getElementById('tanggal');
+        const tipeInput = document.getElementById('tipe');
+        const akunInput = document.getElementById('akun');
+        const kategoriInput = document.getElementById('kategori');
+        
+        const filterBulanDash = document.getElementById('filter-bulan-dash');
+        const filterTahunDash = document.getElementById('filter-tahun-dash');
+        const laporanMasukEl = document.getElementById('laporan-masuk');
+        const laporanKeluarEl = document.getElementById('laporan-keluar');
+        
+        const tabDashboard = document.getElementById('tab-dashboard');
+        const tabBudgeting = document.getElementById('tab-budgeting');
+        const tabRiwayat = document.getElementById('tab-riwayat');
+        const pageDashboard = document.getElementById('page-dashboard');
+        const pageBudgeting = document.getElementById('page-budgeting');
+        const pageRiwayat = document.getElementById('page-riwayat');
+        
+        const filterBulanSet = document.getElementById('filter-bulan-set');
+        const filterTahunSet = document.getElementById('filter-tahun-set');
+        const filterBulanBudg = document.getElementById('filter-bulan-budg');
+        const filterTahunBudg = document.getElementById('filter-tahun-budg');
+        const budgetingTbody = document.getElementById('budgeting-tbody');
+        const budgetTotalForecast = document.getElementById('budget-total-forecast');
+        const budgetTotalTerpakai = document.getElementById('budget-total-terpakai');
+        const budgetTotalSisa = document.getElementById('budget-total-sisa');
+        const formBudgetSettingPage = document.getElementById('form-budget-setting-page');
+        const btnSaveBudgetPage = document.getElementById('btn-save-budget-page');
+
+        const riwayatListEl = document.getElementById('riwayat-list');
+        const btnApplyFilter = document.getElementById('btn-apply-filter');
+        const filterTglMulai = document.getElementById('filter-tgl-mulai');
+        const filterTglAkhir = document.getElementById('filter-tgl-akhir');
+        const filterKategori = document.getElementById('filter-kategori');
+        const filterAkun = document.getElementById('filter-akun');
+        const filterTipe = document.getElementById('filter-tipe');
+        const riwayatTotalMasuk = document.getElementById('riwayat-total-masuk');
+        const riwayatTotalKeluar = document.getElementById('riwayat-total-keluar');
+
+        const tabUtangPiutang = document.getElementById('tab-utangpiutang');
+        const pageUtangPiutang = document.getElementById('page-utangpiutang');
+        const totalUtangSayaEl = document.getElementById('total-utang-saya');
+        const totalPiutangSayaEl = document.getElementById('total-piutang-saya');
+        const formTambahUp = document.getElementById('form-tambah-up');
+        const namaUpInput = document.getElementById('nama-up');
+        const jumlahUpInput = document.getElementById('jumlah-up');
+        const tanggalUpInput = document.getElementById('tanggal-up');
+        const tipeUpInput = document.getElementById('tipe-up');
+        const akunUpInput = document.getElementById('akun-up');
+        const listUtangEl = document.getElementById('list-utang');
+        const listPiutangEl = document.getElementById('list-piutang');
+        
+        const modalBayarUp = document.getElementById('modal-bayar-up');
+        const modalUpTitle = document.getElementById('modal-up-title');
+        const formBayarUp = document.getElementById('form-bayar-up');
+        const hiddenUpId = document.getElementById('hidden-up-id');
+        const hiddenUpTipe = document.getElementById('hidden-up-tipe');
+        const hiddenUpNama = document.getElementById('hidden-up-nama');
+        const jumlahBayarUpInput = document.getElementById('jumlah-bayar-up');
+        const akunBayarUpInput = document.getElementById('akun-bayar-up');
+        const modalUpAkunLabel = document.getElementById('modal-up-akun-label');
+        const btnModalUpClose = document.getElementById('btn-modal-up-close');
+
+
+        // === FUNGSI UTAMA ===
+        
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+        function formatTanggal(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString + 'T00:00:00-07:00').toLocaleDateString('id-ID', options);
+        }
+
+        // =============================================
+        // ⚠️ LOGIKA AUTH (LOGIN/LOGOUT) BARU ⚠️
+        // =============================================
+        
+        // Fungsi Login
+        async function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await auth.signInWithPopup(provider);
+                // Jika berhasil, auth.onAuthStateChanged akan menangani sisanya
+            } catch (error) {
+                console.error("Gagal login dengan Google:", error);
+                alert("Gagal login: " + error.message);
+            }
+        }
+
+        // Fungsi Logout
+        function signOut() {
+            auth.signOut();
+        }
+
+        // Fungsi untuk melepaskan listener database (saat logout)
+        function detachDataListeners() {
+            if (unsubscribeDB) unsubscribeDB();
+            if (currentBudgetSnapshotUnsubscribe) currentBudgetSnapshotUnsubscribe();
+            if (unsubscribeUP) unsubscribeUP();
+
+            unsubscribeDB = null;
+            currentBudgetSnapshotUnsubscribe = null;
+            unsubscribeUP = null;
+
+            transactions = [];
+            budgets = {};
+            utangPiutang = [];
+        }
+
+        // =============================================
+        // FUNGSI INTI APLIKASI
+        // =============================================
+
+        function loadBudgetForSetting() {
+            if (currentBudgetSnapshotUnsubscribe) {
+                currentBudgetSnapshotUnsubscribe();
+            }
+            
+            const bulan = parseInt(filterBulanSet.value) + 1;
+            const tahun = filterTahunSet.value;
+            // ⚠️ BARU: Doc ID sekarang spesifik per bulan & tahun
+            const docId = `${tahun}-${String(bulan).padStart(2, '0')}`;
+            
+            // ⚠️ BARU: Mengambil dari koleksi budget milik user
+            currentBudgetSnapshotUnsubscribe = budgetsCollection.doc(docId).onSnapshot(doc => {
+                if (doc.exists) {
+                    budgets = doc.data(); 
+                } else {
+                    budgets = {};
+                }
+                populateBudgetSettingForm(); 
+                updateBudgetingTable(filterBulanBudg.value, filterTahunBudg.value);
+            });
+        }
+        
+        function populateBudgetSettingForm() {
+            formBudgetSettingPage.innerHTML = '';
+            const spendingCategories = kategoriOptions.filter(k => 
+                k !== 'Gaji / Pemasukan' && k !== 'Uang Saku' && 
+                k !== 'Utang' && k !== 'Piutang' && 
+                k !== 'Bayar Utang' && k !== 'Bayar Piutang'
+            );
+            
+            spendingCategories.forEach(kategori => {
+                const currentValue = budgets[kategori] || 0;
+                const div = document.createElement('div');
+                div.classList.add('form-control', 'full-width');
+                div.innerHTML = `
+                    <label for="budget-${kategori.replace(/\s/g, '_')}">${kategori}</label>
+                    <input type="number" id="budget-${kategori.replace(/\s/g, '_')}" name="${kategori}" value="${currentValue}" placeholder="Target budget (Rp)" min="0">
+                `;
+                formBudgetSettingPage.appendChild(div);
+            });
+        }
+
+        async function saveBudget(e) {
+            e.preventDefault();
+            const bulanIndex = parseInt(filterBulanSet.value);
+            const tahun = filterTahunSet.value;
+            const bulan = bulanIndex + 1;
+            // ⚠️ BARU: Doc ID spesifik
+            const docId = `${tahun}-${String(bulan).padStart(2, '0')}`; 
+
+            const formData = new FormData(formBudgetSettingPage);
+            const newBudget = {};
+            let isDataChanged = false; 
+
+            for (const [key, value] of formData.entries()) {
+                const intValue = parseInt(value);
+                if (intValue >= 0) { 
+                    newBudget[key] = intValue;
+                    if (budgets[key] !== intValue) { isDataChanged = true; }
+                }
+            }
+
+            try {
+                if (isDataChanged || Object.keys(newBudget).length > 0) {
+                    // ⚠️ BARU: Menyimpan ke koleksi budget milik user
+                    await budgetsCollection.doc(docId).set(newBudget);
+                    alert(`Budget untuk ${bulanOptions[bulanIndex]} ${tahun} berhasil disimpan!`);
+                } else {
+                    alert('Budget sudah sama dengan sebelumnya atau tidak ada nilai yang valid.');
+                }
+            } catch (error) {
+                console.error("Gagal menyimpan budget: ", error);
+                alert("Gagal menyimpan budget. Pastikan Aturan Keamanan (Rules) Anda sudah benar.");
+            }
+        }
+
+        function updateBudgetingTable(bulan, tahun) {
+            if (isNaN(bulan) || isNaN(tahun)) return;
+
+            const currentBudgets = budgets; 
+            const filteredTransactions = transactions.filter(t => {
+                const tDate = new Date(t.tanggal + 'T00:00:00-07:00'); 
+                return tDate.getMonth() === parseInt(bulan) && tDate.getFullYear() === parseInt(tahun) && t.jumlah < 0;
+            });
+
+            const actualSpending = {};
+            filteredTransactions.forEach(t => {
+                const spending = Math.abs(t.jumlah); 
+                actualSpending[t.kategori] = (actualSpending[t.kategori] || 0) + spending;
+            });
+
+            budgetingTbody.innerHTML = '';
+            let totalForecast = 0;
+            let totalTerpakai = 0;
+            const spendingCategories = kategoriOptions.filter(k => 
+                k !== 'Gaji / Pemasukan' && k !== 'Uang Saku' && k !== 'Lainnya' &&
+                k !== 'Utang' && k !== 'Piutang' && 
+                k !== 'Bayar Utang' && k !== 'Bayar Piutang'
+            );
+
+            spendingCategories.forEach(kategori => {
+                const forecast = currentBudgets[kategori] || 0;
+                const terpakai = actualSpending[kategori] || 0;
+                const sisa = forecast - terpakai;
+                
+                totalForecast += forecast;
+                totalTerpakai += terpakai;
+
+                const sisaClass = sisa < 0 ? 'budget-lebih' : (sisa > 0 ? 'budget-sisa' : '');
+                const sisaText = sisa < 0 ? `(${formatRupiah(Math.abs(sisa))})` : formatRupiah(sisa);
+
+                const row = `
+                    <tr>
+                        <td>${kategori}</td>
+                        <td>${formatRupiah(forecast)}</td>
+                        <td>${formatRupiah(terpakai)}</td>
+                        <td class="${sisaClass}">${sisaText}</td>
+                    </tr>
+                `;
+                budgetingTbody.innerHTML += row;
+            });
+            
+            const totalSisa = totalForecast - totalTerpakai;
+            budgetTotalForecast.innerText = formatRupiah(totalForecast);
+            budgetTotalTerpakai.innerText = formatRupiah(totalTerpakai);
+            budgetTotalSisa.innerText = formatRupiah(totalSisa);
+        }
+        
+        async function addTransaction(e) {
+            e.preventDefault(); 
+            if (deskripsiInput.value.trim() === '' || jumlahInput.value.trim() === '' || tanggalInput.value.trim() === '') {
+                alert('Mohon isi deskripsi, jumlah, dan tanggal.');
+                return;
+            }
+            let jumlah = +jumlahInput.value;
+            if (tipeInput.value === 'pengeluaran') {
+                jumlah = -Math.abs(jumlah);
+            } else {
+                jumlah = Math.abs(jumlah);
+            }
+            const newTransaction = {
+                // ⚠️ userId TIDAK PERLU LAGI, karena sudah disimpan di sub-koleksi
+                tanggal: tanggalInput.value, deskripsi: deskripsiInput.value,
+                jumlah: jumlah, akun: akunInput.value, kategori: kategoriInput.value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+            };
+            try {
+                // ⚠️ BARU: Menyimpan ke koleksi transaksi milik user
+                await transactionsCollection.add(newTransaction);
+                
+                const tDate = new Date(newTransaction.tanggal + 'T00:00:00-07:00');
+                const newMonth = tDate.getMonth();
+                const newYear = tDate.getFullYear();
+                filterBulanDash.value = newMonth; filterTahunDash.value = newYear;
+                filterBulanBudg.value = newMonth; filterTahunBudg.value = newYear;
+                filterBulanSet.value = newMonth; filterTahunSet.value = newYear;
+                loadBudgetForSetting();
+
+                formTambah.reset();
+                tanggalInput.value = new Date().toISOString().split('T')[0];
+                alert('Transaksi berhasil ditambahkan!');
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("Gagal menyimpan data. Pastikan Aturan Keamanan (Rules) Anda sudah benar.");
+            }
+        }
+
+        function updateSaldos() {
+            const amounts = transactions.map(t => t.jumlah);
+            const total = amounts.reduce((acc, item) => (acc += item), 0);
+            const saldoATM = transactions.filter(t => t.akun === 'ATM').reduce((acc, t) => (acc += t.jumlah), 0);
+            const saldoTunai = transactions.filter(t => t.akun === 'Tunai').reduce((acc, t) => (acc += t.jumlah), 0);
+            saldoTotalEl.innerText = formatRupiah(total);
+            saldoAtmEl.innerText = formatRupiah(saldoATM);
+            saldoTunaiEl.innerText = formatRupiah(saldoTunai);
+        }
+        
+        function updateLaporanBulanan() {
+            const bulan = parseInt(filterBulanDash.value);
+            const tahun = parseInt(filterTahunDash.value);
+            if (isNaN(bulan) || isNaN(tahun)) return;
+            
+            const filteredTransactions = transactions.filter(t => {
+                const tDate = new Date(t.tanggal + 'T00:00:00-07:00'); 
+                return tDate.getMonth() === bulan && tDate.getFullYear() === tahun;
+            });
+            const amounts = filteredTransactions.map(t => t.jumlah);
+            const pemasukan = amounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0);
+            const pengeluaran = amounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1;
+            laporanMasukEl.innerText = `+${formatRupiah(pemasukan)}`;
+            laporanKeluarEl.innerText = `-${formatRupiah(pengeluaran)}`;
+        }
+        
+        window.removeTransaction = async function(id) {
+            if (confirm('Anda yakin ingin menghapus transaksi ini? (Menghapus ini TIDAK akan mengembalikan sisa utang/piutang. Hati-hati!)')) {
+                try {
+                    // ⚠️ BARU: Menghapus dari koleksi transaksi milik user
+                    await transactionsCollection.doc(id).delete();
+                } catch (error) {
+                    console.error("Error removing document: ", error);
+                    alert("Gagal menghapus data.");
+                }
+            }
+        }
+
+        // ... (Fungsi populateTahunFilter dan populateBulanFilter tidak berubah) ...
+        function populateTahunFilter(element) {
+            const currentYear = new Date().getFullYear();
+            const years = transactions.map(t => new Date(t.tanggal + 'T00:00:00-07:00').getFullYear());
+            const uniqueYears = [...new Set(years)]; 
+            if (uniqueYears.length === 0 || !uniqueYears.includes(currentYear)) { uniqueYears.push(currentYear); }
+            uniqueYears.sort((a, b) => b - a); 
+            
+            const initialValue = element.value || currentYear; 
+            element.innerHTML = ''; 
+            uniqueYears.forEach(year => { 
+                const option = document.createElement('option'); 
+                option.value = year; option.text = year; element.appendChild(option); 
+            });
+            element.value = uniqueYears.includes(parseInt(initialValue)) ? initialValue : currentYear;
+        }
+        function populateBulanFilter(element) {
+            const currentMonth = new Date().getMonth(); 
+            const initialValue = element.value || currentMonth;
+            element.innerHTML = '';
+            bulanOptions.forEach((bulan, index) => { 
+                element.innerHTML += `<option value="${index}">${bulan}</option>`; 
+            });
+            element.value = initialValue;
+        }
+        function populateAllFilters() {
+            populateBulanFilter(filterBulanDash); populateTahunFilter(filterTahunDash);
+            populateBulanFilter(filterBulanBudg); populateTahunFilter(filterTahunBudg);
+            populateBulanFilter(filterBulanSet); populateTahunFilter(filterTahunSet);
+            
+            kategoriInput.innerHTML = ''; filterKategori.innerHTML = '<option value="semua">Semua Kategori</option>';
+            kategoriOptions.forEach(k => { 
+                filterKategori.innerHTML += `<option value="${k}">${k}</option>`; 
+            });
+            kategoriInput.innerHTML = '';
+            kategoriOptions.filter(k => k !== 'Utang' && k !== 'Piutang' && k !== 'Bayar Utang' && k !== 'Bayar Piutang')
+                .forEach(k => { kategoriInput.innerHTML += `<option value="${k}">${k}</option>`; });
+
+            filterAkun.innerHTML = '<option value="semua">Semua Akun</option><option value="ATM">ATM</option><option value="Tunai">Tunai</option>';
+            filterTipe.innerHTML = '<option value="semua">Semua Tipe</option><option value="pemasukan">Pemasukan</option><option value="pengeluaran">Pengeluaran</option>';
+            
+            const today = new Date();
+            filterTglMulai.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            filterTglAkhir.value = today.toISOString().split('T')[0];
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('[id^="page-"]').forEach(page => page.classList.add('hidden'));
+
+            const tabId = 'tab-' + pageId.replace('page-', '');
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById(pageId).classList.remove('hidden');
+
+            if (pageId === 'page-dashboard') { updateLaporanBulanan(); }
+            if (pageId === 'page-budgeting') { loadBudgetForSetting(); }
+            if (pageId === 'page-riwayat') { applyRiwayatFilter(); }
+            if (pageId === 'page-utangpiutang') { updateUtangPiutangUI(); }
+        }
+
+        // =============================================
+        // ⚠️ FUNGSI-FUNGSI UTANG/PIUTANG (MULTI-USER) ⚠️
+        // =============================================
+
+        function updateUtangPiutangUI() {
+            listUtangEl.innerHTML = '';
+            listPiutangEl.innerHTML = '';
+            
+            let totalUtang = 0;
+            let totalPiutang = 0;
+
+            const utangAktif = utangPiutang.filter(t => t.tipe === 'utang' && !t.lunas);
+            const piutangAktif = utangPiutang.filter(t => t.tipe === 'piutang' && !t.lunas);
+
+            if (utangAktif.length === 0) {
+                listUtangEl.innerHTML = '<li style="background: transparent; border: none; box-shadow: none; color: var(--color-teks-abu); text-align: center;">Tidak ada utang aktif.</li>';
+            }
+            utangAktif.forEach(t => {
+                totalUtang += t.sisa;
+                const li = document.createElement('li');
+                li.classList.add('utang');
+                li.innerHTML = `
+                    <div class="nama">${t.nama}</div>
+                    <div class="tanggal">Tgl: ${formatTanggal(t.tanggal)}</div>
+                    <div class="sisa">${formatRupiah(t.sisa)} <span>dari</span> <span class="jumlah-awal">${formatRupiah(t.jumlahAwal)}</span></div>
+                    <div class="aksi">
+                        <button class="btn-secondary" onclick="openPaymentModal('${t.id}')">Bayar</button>
+                    </div>
+                `;
+                listUtangEl.appendChild(li);
+            });
+
+            if (piutangAktif.length === 0) {
+                listPiutangEl.innerHTML = '<li style="background: transparent; border: none; box-shadow: none; color: var(--color-teks-abu); text-align: center;">Tidak ada piutang aktif.</li>';
+            }
+            piutangAktif.forEach(t => {
+                totalPiutang += t.sisa;
+                const li = document.createElement('li');
+                li.classList.add('piutang');
+                li.innerHTML = `
+                    <div class="nama">${t.nama}</div>
+                    <div class="tanggal">Tgl: ${formatTanggal(t.tanggal)}</div>
+                    <div class="sisa">${formatRupiah(t.sisa)} <span>dari</span> <span class="jumlah-awal">${formatRupiah(t.jumlahAwal)}</span></div>
+                    <div class="aksi">
+                        <button class="btn-secondary" onclick="openPaymentModal('${t.id}')">Terima</button>
+                    </div>
+                `;
+                listPiutangEl.appendChild(li);
+            });
+
+            totalUtangSayaEl.innerText = formatRupiah(totalUtang);
+            totalPiutangSayaEl.innerText = formatRupiah(totalPiutang);
+        }
+
+        async function addUtangPiutang(e) {
+            e.preventDefault();
+            const nama = namaUpInput.value;
+            const jumlahAwal = +jumlahUpInput.value;
+            const tanggal = tanggalUpInput.value;
+            const tipe = tipeUpInput.value;
+            const akun = akunUpInput.value;
+
+            if (nama.trim() === '' || jumlahAwal <= 0 || tanggal === '') {
+                alert('Mohon isi nama, jumlah, dan tanggal dengan benar.');
+                return;
+            }
+
+            try {
+                // ⚠️ BARU: Menyimpan ke koleksi U/P milik user
+                const newUP = {
+                    nama: nama,
+                    jumlahAwal: jumlahAwal,
+                    sisa: jumlahAwal,
+                    tipe: tipe,
+                    tanggal: tanggal,
+                    lunas: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await utangPiutangCollection.add(newUP);
+
+                const deskripsi = (tipe === 'utang') ? `Menerima Utang dari ${nama}` : `Memberi Piutang ke ${nama}`;
+                const jumlah = (tipe === 'utang') ? jumlahAwal : -jumlahAwal;
+                const kategori = (tipe === 'utang') ? "Utang" : "Piutang";
+
+                const newTransaction = {
+                    tanggal: tanggal,
+                    deskripsi: deskripsi,
+                    jumlah: jumlah,
+                    akun: akun,
+                    kategori: kategori,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+                };
+                // ⚠️ BARU: Menyimpan ke koleksi transaksi milik user
+                await transactionsCollection.add(newTransaction);
+
+                alert('Catatan Utang/Piutang berhasil ditambahkan!');
+                formTambahUp.reset();
+                tanggalUpInput.value = new Date().toISOString().split('T')[0];
+
+            } catch (error) {
+                console.error("Gagal mencatat Utang/Piutang: ", error);
+                alert("Gagal menyimpan data. Periksa Firebase Rules Anda.");
+            }
+        }
+
+        window.openPaymentModal = function(id) {
+            const doc = utangPiutang.find(t => t.id === id);
+            if (!doc) {
+                alert('Error: Data tidak ditemukan!');
+                return;
+            }
+
+            hiddenUpId.value = id;
+            hiddenUpTipe.value = doc.tipe;
+            hiddenUpNama.value = doc.nama;
+
+            if (doc.tipe === 'utang') {
+                modalUpTitle.innerText = `Bayar Utang ke ${doc.nama}`;
+                modalUpAkunLabel.innerText = "Bayar dari Akun";
+            } else {
+                modalUpTitle.innerText = `Terima Piutang dari ${doc.nama}`;
+                modalUpAkunLabel.innerText = "Terima ke Akun";
+            }
+
+            jumlahBayarUpInput.value = '';
+            jumlahBayarUpInput.max = doc.sisa;
+            modalBayarUp.style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            modalBayarUp.style.display = 'none';
+            formBayarUp.reset();
+        }
+
+        async function submitPayment(e) {
+            e.preventDefault();
+            const id = hiddenUpId.value;
+            const tipe = hiddenUpTipe.value;
+            const nama = hiddenUpNama.value;
+            const jumlahBayar = +jumlahBayarUpInput.value;
+            const akun = akunBayarUpInput.value;
+
+            // ⚠️ BARU: Mengambil dari koleksi U/P milik user
+            const docRef = utangPiutangCollection.doc(id);
+            const docData = utangPiutang.find(t => t.id === id);
+
+            if (jumlahBayar <= 0) {
+                alert('Jumlah bayar harus lebih dari 0.');
+                return;
+            }
+            if (jumlahBayar > docData.sisa) {
+                if (!confirm(`Jumlah bayar lebih besar dari sisa (${formatRupiah(docData.sisa)}). Lanjutkan?`)) {
+                    return;
+                }
+            }
+            
+            try {
+                const newSisa = docData.sisa - jumlahBayar;
+                const isLunas = newSisa <= 0;
+                await docRef.update({
+                    sisa: newSisa,
+                    lunas: isLunas
+                });
+
+                const deskripsi = (tipe === 'utang') ? `Bayar Utang ke ${nama}` : `Terima Bayaran Piutang dari ${nama}`;
+                const jumlah = (tipe === 'utang') ? -jumlahBayar : +jumlahBayar;
+                const kategori = (tipe === 'utang') ? "Bayar Utang" : "Bayar Piutang";
+
+                const newTransaction = {
+                    tanggal: new Date().toISOString().split('T')[0],
+                    deskripsi: deskripsi,
+                    jumlah: jumlah,
+                    akun: akun,
+                    kategori: kategori,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+                };
+                // ⚠️ BARU: Menyimpan ke koleksi transaksi milik user
+                await transactionsCollection.add(newTransaction);
+
+                alert('Pembayaran berhasil dicatat!');
+                closePaymentModal();
+            
+            } catch (error) {
+                console.error("Gagal mencatat pembayaran: ", error);
+                alert("Gagal menyimpan data. Periksa Firebase Rules Anda.");
+            }
+        }
+
+        // --- (BAGIAN INI DIPERBAIKI DARI KODE ANDA YANG TERPOTONG) ---
+        function applyRiwayatFilter() {
+            const tglMulai = filterTglMulai.value;
+            const tglAkhir = filterTglAkhir.value;
+            const kategori = filterKategori.value;
+            const akun = filterAkun.value;
+            const tipe = filterTipe.value;
+            
+            let filtered = [...transactions]; 
+            
+            if (tglMulai) { filtered = filtered.filter(t => t.tanggal >= tglMulai); }
+            if (tglAkhir) { filtered = filtered.filter(t => t.tanggal <= tglAkhir); }
+            
+            if (kategori !== 'semua') {
+                filtered = filtered.filter(t => t.kategori === kategori);
+            }
+            if (akun !== 'semua') {
+                filtered = filtered.filter(t => t.akun === akun);
+            }
+            if (tipe !== 'semua') {
+                if (tipe === 'pemasukan') {
+                    filtered = filtered.filter(t => t.jumlah > 0);
+                } else if (tipe === 'pengeluaran') {
+                    filtered = filtered.filter(t => t.jumlah < 0);
+                }
+            }
+
+            // Hitung total dari hasil filter
+            let totalMasuk = 0;
+            let totalKeluar = 0;
+            riwayatListEl.innerHTML = ''; // Kosongkan list
+
+            if (filtered.length === 0) {
+                 riwayatListEl.innerHTML = '<li style="background: transparent; border: none; box-shadow: none; color: var(--color-teks-abu); text-align: center;">Tidak ada transaksi sesuai filter.</li>';
+            }
+
+            // Urutkan berdasarkan tanggal terbaru
+            filtered.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+            filtered.forEach(t => {
+                if (t.jumlah > 0) {
+                    totalMasuk += t.jumlah;
+                } else {
+                    totalKeluar += t.jumlah;
+                }
+                
+                // Tambahkan ke DOM
+                const item = document.createElement('li');
+                item.classList.add(t.jumlah < 0 ? 'minus' : 'plus');
+                item.innerHTML = `
+                    <div class="info">
+                        <span class="deskripsi">${t.deskripsi}</span>
+                        <span class="detail">${formatTanggal(t.tanggal)} | ${t.akun} | ${t.kategori}</span>
+                    </div>
+                    <span class="jumlah">${formatRupiah(t.jumlah)}</span>
+                    <button class="delete-btn" onclick="removeTransaction('${t.id}')">X</button>
+                `;
+                riwayatListEl.appendChild(item);
+            });
+            
+            riwayatTotalMasuk.innerText = `+${formatRupiah(totalMasuk)}`;
+            riwayatTotalKeluar.innerText = `-${formatRupiah(Math.abs(totalKeluar))}`;
+        }
+        
+        // =======================================================
+        // ⚠️ BAGIAN YANG HILANG DARI FILE ANDA: INISIALISASI
+        // =======================================================
+
+        // 1. Pengamat Status Autentikasi (Paling Penting!)
+        // Ini yang menentukan apakah menampilkan layar login atau aplikasi
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // --- Pengguna BERHASIL LOGIN ---
+                userId = user.uid; // Simpan ID pengguna
+                console.log("Pengguna login:", userId);
+                
+                // Atur path koleksi berdasarkan userId
+                // Ini akan mengarahkan ke sub-koleksi milik pengguna
+                const userDocRef = db.collection('users').doc(userId);
+                transactionsCollection = userDocRef.collection('transactions');
+                budgetsCollection = userDocRef.collection('budgets');
+                utangPiutangCollection = userDocRef.collection('utangpiutang');
+
+                // Tampilkan aplikasi, sembunyikan login
+                welcomeScreen.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                logoutContainer.classList.remove('hidden');
+
+                // Mulai mengambil data dari database
+                attachDataListeners();
+                
+                // Inisialisasi UI
+                populateAllFilters();
+                tanggalInput.value = new Date().toISOString().split('T')[0];
+                tanggalUpInput.value = new Date().toISOString().split('T')[0];
+                showPage('page-dashboard'); // Tampilkan dashboard sebagai default
+
+            } else {
+                // --- Pengguna LOGOUT ---
+                console.log("Pengguna logout.");
+                userId = null;
+                
+                // Hentikan pengambilan data
+                detachDataListeners(); 
+
+                // Tampilkan layar login, sembunyikan aplikasi
+                welcomeScreen.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                logoutContainer.classList.add('hidden');
+            }
+        });
+
+        // 2. Event Listener untuk Tombol Login dan Logout
+        // === INI SOLUSI LANGSUNG UNTUK MASALAH ANDA ===
+        btnGoogleLogin.addEventListener('click', signInWithGoogle);
+        btnLogout.addEventListener('click', signOut);
+
+        // 3. Event Listener untuk Navigasi Tab
+        tabDashboard.addEventListener('click', () => showPage('page-dashboard'));
+        tabBudgeting.addEventListener('click', () => showPage('page-budgeting'));
+        tabRiwayat.addEventListener('click', () => showPage('page-riwayat'));
+        tabUtangPiutang.addEventListener('click', () => showPage('page-utangpiutang'));
+
+        // 4. Event Listener untuk Filter dan Form
+        formTambah.addEventListener('submit', addTransaction);
+        btnSaveBudgetPage.addEventListener('click', saveBudget);
+        btnApplyFilter.addEventListener('click', applyRiwayatFilter);
+        formTambahUp.addEventListener('submit', addUtangPiutang);
+        
+        // 5. Event Listener untuk Modal
+        btnModalUpClose.addEventListener('click', closePaymentModal);
+        formBayarUp.addEventListener('submit', submitPayment);
+        
+        // 6. Event Listener untuk Perubahan Filter (Auto-update)
+        filterBulanDash.addEventListener('change', updateLaporanBulanan);
+        filterTahunDash.addEventListener('change', updateLaporanBulanan);
+        filterBulanBudg.addEventListener('change', () => updateBudgetingTable(filterBulanBudg.value, filterTahunBudg.value));
+        filterTahunBudg.addEventListener('change', () => updateBudgetingTable(filterBulanBudg.value, filterTahunBudg.value));
+        filterBulanSet.addEventListener('change', loadBudgetForSetting);
+        filterTahunSet.addEventListener('change', loadBudgetForSetting);
+
+        // 7. Fungsi untuk Memulai Listener Database (Juga Hilang)
+        // Fungsi ini dipanggil setelah login berhasil
+        function attachDataListeners() {
+            // Hentikan listener lama jika ada (untuk mencegah duplikat)
+            detachDataListeners();
+            
+            // Listener untuk Transaksi
+            unsubscribeDB = transactionsCollection.orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Update semua UI yang bergantung pada transaksi
+                updateSaldos();
+                updateLaporanBulanan();
+                applyRiwayatFilter(); // Update riwayat
+                updateBudgetingTable(filterBulanBudg.value, filterTahunBudg.value); // Update tabel budget
+                populateTahunFilter(filterTahunDash); // Update filter tahun
+                populateTahunFilter(filterTahunBudg);
+                populateTahunFilter(filterTahunSet);
+            }, error => {
+                console.error("Gagal mengambil data transaksi: ", error);
+                alert("Gagal mengambil data. Pastikan Firebase Rules Anda sudah benar.");
+            });
+
+            // Listener untuk Utang/Piutang
+            unsubscribeUP = utangPiutangCollection.orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                utangPiutang = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateUtangPiutangUI();
+            }, error => {
+                console.error("Gagal mengambil data utang/piutang: ", error);
+            });
+
+            // Memuat budget awal
+            loadBudgetForSetting(); 
+        }
+
+    </script>
+</body>
+</html>
